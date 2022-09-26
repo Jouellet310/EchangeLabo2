@@ -128,6 +128,53 @@ class Repository {
         }
         if (params) {
             // TODO Laboratoire 2
+            let model = this.model;
+            let filteredAndSortedObjects = [];
+            let sortKeys = [];
+            let searchKeys = [];
+            Object.keys(params).forEach(function (paramName) {
+                if (paramName == "sort") {
+                    let keyValues = params[paramName];
+                    if (Array.isArray(keyValues)) {
+                        for (let key of keyValues) {
+                            let values = key.split(',');
+                            let descendant = (values.length > 1) && (values[1] == "desc");
+                            sortKeys.push({ key: values[0], asc: !descendant });
+                        }
+                    } else {
+                        let value = keyValues.split(',');
+                        let descendant = (value.length > 1) && (value[1] == "desc");
+                        sortKeys.push({ key: value[0], asc: !descendant });
+                    }
+                } else {
+                    // todo add search key
+                    if (paramName in model)
+                        searchKeys.push({key: paramName, value: params[paramName]});
+                }
+            });
+            for (let object of objectsList) {
+                for (let searchKey of searchKeys) {
+                    if (object[searchKey.key] === searchKey.value || this.valueMatch(object[searchKey.key], searchKey.value)) {
+                        filteredAndSortedObjects.push(object)
+                    }
+                }
+            }
+
+            if (filteredAndSortedObjects.length == 0) {
+                filteredAndSortedObjects = objectsList;
+            }
+
+            // todo sort
+            for(let sortKey of sortKeys){
+                if(sortKey){
+                    filteredAndSortedObjects.sort((x,y) => this.innerCompare(x[sortKey.key], y[sortKey.key]))
+                }
+                else{
+                    filteredAndSortedObjects.sort((x,y) => this.innerCompare(y[sortKey.key], x[sortKey.key]))
+                }
+            }
+            return filteredAndSortedObjects;
+
         }
         return objectsList;
     }
@@ -165,6 +212,25 @@ class Repository {
         }
         return null;
     }
+
+    valueMatch(value, searchValue) {
+        try {
+            return new RegExp('^' + searchValue.toLowerCase().replace(/\*/g, '.*') + '$').test(value.toString().toLowerCase());
+        } catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
+
+    compareNum(x, y) {
+        if(x === y) return 0;
+        else if(x < y) return 1;
+    }
+
+    innerCompare(x, y) {
+        if((typeof x) === 'string') return x.localeCompare(y);
+        else return this.compareNum(x, y);}
+
 }
 
 module.exports = Repository;
